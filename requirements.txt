@@ -1,7 +1,8 @@
 numpy
 pandas
 matplotlib
-opencv-python
+# opencv-python
 jupyter
 labelImg
 ultralytics
+mediapipe
