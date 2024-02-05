@@ -4,4 +4,3 @@ matplotlib
 opencv-python
 jupyter
 labelImg
-mediapipe
