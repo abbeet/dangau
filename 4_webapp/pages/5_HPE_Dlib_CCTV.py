@@ -1,10 +1,13 @@
 import cv2
 import dlib
 import numpy as np
+import sys
+
+face_predict_path = "C:/Users/barry/Documents/GitHub/dangau/4_webapp/models/shape_predictor_68_face_landmarks.dat"
 
 # Initialize dlib's face detector and load the facial landmark predictor
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor('./4_webapp/models/shape_predictor_68_face_landmarks.dat')
+predictor = dlib.shape_predictor(face_predict_path)
 
 # RTSP stream source
 rtsp_url = "rtsp://admin:All3gr1t4@192.168.8.7:554/axis-media/media.amp?streamprofile=Quality"

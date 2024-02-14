@@ -1,10 +1,28 @@
 import cv2
 import dlib
 import numpy as np
+import math
 
+def rotate(origin, point, angle):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+
+    qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+    qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+    
+    return (int(qx), int(qy))
+    
+
+
+face_predict_path = "C:/Users/barry/Documents/GitHub/dangau/4_webapp/models/shape_predictor_68_face_landmarks.dat"
 # Initialize dlib's face detector and load the facial landmark predictor
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor('./4_webapp/models/shape_predictor_68_face_landmarks.dat')
+predictor = dlib.shape_predictor(face_predict_path)
 
 # Camera source
 cap = cv2.VideoCapture(0)
@@ -60,6 +78,13 @@ while True:
         p1 = (int(image_points[0][0]), int(image_points[0][1]))
         p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
 
+        q2 = rotate(p1,p2,45)
+        r2 = rotate(p1,p2,-45)
+        print(q2,r2)
+        
+        
+        cv2.line(frame, p1, q2, (255,255,0), 1)
+        cv2.line(frame, p1, r2, (255,255,0), 1)
         cv2.line(frame, p1, p2, (255,0,0), 2)
 
     # Display the resulting frame
