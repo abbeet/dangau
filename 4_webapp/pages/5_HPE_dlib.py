@@ -1,13 +1,48 @@
 import cv2
 import dlib
 import numpy as np
+import math
+from matplotlib.colors import BoundaryNorm
+from matplotlib.ticker import MaxNLocator
+import matplotlib.pyplot as plt
+from scipy.stats import multivariate_normal
 
-# Initialize dlib's face detector and load the facial landmark predictor
+#fungsi rotate buat svf
+def rotate(origin, point, angle):
+    """
+    Rotate a point counterclockwise by a given angle around a given origin.
+
+    The angle should be given in radians.
+    """
+    ox, oy = origin
+    px, py = point
+
+    qx = ox + math.cos(angle) * (px - ox) - math.sin(angle) * (py - oy)
+    qy = oy + math.sin(angle) * (px - ox) + math.cos(angle) * (py - oy)
+    
+    return (int(qx), int(qy))
+    
+
+face_predict_path = "C:/Users/barry/Documents/GitHub/dangau/4_webapp/models/shape_predictor_68_face_landmarks.dat"
+
+# dlib face detector
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor('./4_webapp/models/shape_predictor_68_face_landmarks.dat')
+predictor = dlib.shape_predictor(face_predict_path)
 
-# Camera source
+#opencv haarcascade detector
+# face_cascade_name = cv2.data.haarcascades + 'haarcascade_frontalface_alt.xml'
+# face_cascade = cv2.CascadeClassifier(face_cascade_name)
+
+
+
+# video source
+# video_path = "C:/Users/barry/Documents/GitHub/dangau/4_webapp/videos/videosample.mp4"
+# cap = cv2.VideoCapture(video_path)
+
+# webcam source
 cap = cv2.VideoCapture(0)
+
+
 
 # Predefined 3D model points of a generic face model
 model_points = np.array([
@@ -21,6 +56,7 @@ model_points = np.array([
 
 # Camera internals
 size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+
 focal_length = size[1]
 center = (size[1]/2, size[0]/2)
 camera_matrix = np.array(
@@ -29,15 +65,31 @@ camera_matrix = np.array(
                          [0, 0, 1]], dtype = "double"
                          )
 
+#buat heatmap
+x = np.linspace(center[1]-(size[1]/2),center[1]+(size[1]/2),size[1])
+y = np.linspace(center[0]-(size[0]/2),center[0]+(size[0]/2),size[0])
+xx, yy = np.meshgrid(x,y)
+xxyy = np.c_[xx.ravel(),yy.ravel()]
+
+std = np.eye(2)*200
+heatMat = np.zeros(size)
+
+
+
 while True:
     ret, frame = cap.read()
     if not ret:
         break
-
+    
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     faces = detector(gray)
-
+    
+    # #pake opencv haarcascade
+    # faces2 = face_cascade.detectMultiScale(gray, scaleFactor=1.5, minNeighbors=2)
+    # print(faces2)
+    
     for face in faces:
+        
         landmarks = predictor(gray, face)
 
         # 2D image points from the facial landmarks
@@ -60,12 +112,33 @@ while True:
         p1 = (int(image_points[0][0]), int(image_points[0][1]))
         p2 = (int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
 
+        # q2 = rotate(p1,p2,45)
+        # r2 = rotate(p1,p2,-45)
+        
+        # cv2.line(frame, p1, q2, (255,255,0), 1)
+        # cv2.line(frame, p1, r2, (255,255,0), 1)
         cv2.line(frame, p1, p2, (255,0,0), 2)
+        
+        #cv2.fillPoly(frame, [p1,q2,r2], color=[255,255,255])
+        
+        #build kernel
+        ker = multivariate_normal(mean=p2,cov=std)
+        zz = ker.pdf(xxyy)
+        heatMat = heatMat + zz.reshape(size)*10
+    
+    # #ini kalo pake opencv haarcascade
+    # for (x,y,w,h) in faces2:
+    #     cv2.rectangle(frame,(x,y),(x+w,y+h),(0,0,255),2)
+
 
     # Display the resulting frame
     cv2.imshow('Head Pose Estimation', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
+        heatMat = np.transpose(heatMat)
+        plt.imshow(heatMat)
+        plt.colorbar()
+        plt.show()
         break
 
 # When everything done, release the capture
